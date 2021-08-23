@@ -3,9 +3,10 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 )
 
 var connection *sql.DB
@@ -33,7 +34,7 @@ func (a Author) Find(id string) (Author, error) {
 	FROM
 		authors
 	WHERE
-		authors.id = ?;
+		authors.id = $1;
 	`
 
 	stmt, err := connection.Prepare(authorQuery)
@@ -68,7 +69,7 @@ func (a Author) Find(id string) (Author, error) {
 	FROM
 		books
 	WHERE
-		books.author_id = ?;
+		books.author_id = $1;
 	`
 
 	stmt, err = connection.Prepare(authorBooksQuery)
@@ -102,21 +103,14 @@ func (a Author) Find(id string) (Author, error) {
 func (a *Author) Create() (Author, error) {
 	var author Author
 
-	stmt, err := connection.Prepare("INSERT INTO authors(name) values(?)")
+	lastInsertId := 0
+	err := connection.QueryRow(`INSERT INTO "authors" (name) values($1) RETURNING id`, a.Name).Scan(&lastInsertId)
 
 	if err != nil {
 		return author, err
 	}
 
-	res, err := stmt.Exec(a.Name)
-
-	if err != nil {
-		return author, err
-	}
-
-	id, err := res.LastInsertId()
-
-	strInt := strconv.Itoa(int(id))
+	strInt := strconv.Itoa(int(lastInsertId))
 
 	author, err = a.Find(strInt)
 
@@ -158,7 +152,7 @@ func (a Author) All() ([]Author, error) {
 		FROM
 			books
 		WHERE
-			author_id = ?;	
+			author_id = $1;	
 		`
 
 		stmt, err := connection.Prepare(booksQuery)
@@ -204,21 +198,14 @@ func (a Author) All() ([]Author, error) {
 func (b *Book) Create() (Book, error) {
 	var book Book
 
-	stmt, err := connection.Prepare("INSERT INTO books(title, author_id) values(?,?)")
+	lastInsertId := 0
+	err := connection.QueryRow(`INSERT INTO "books" (title, author_id) values($1, $2) RETURNING id`, b.Title, b.AuthorId).Scan(&lastInsertId)
 
 	if err != nil {
 		return book, err
 	}
 
-	res, err := stmt.Exec(b.Title, b.AuthorId)
-
-	if err != nil {
-		return book, err
-	}
-
-	id, err := res.LastInsertId()
-
-	strInt := strconv.Itoa(int(id))
+	strInt := strconv.Itoa(int(lastInsertId))
 
 	book, err = b.Find(strInt)
 
@@ -228,23 +215,24 @@ func (b *Book) Create() (Book, error) {
 func (b Book) Find(id string) (Book, error) {
 	var book Book
 
+	log.Println(id)
 	query := `
 	SELECT
 		books.id,
-		books.title, 
+		books.title,
 		authors.id,
-		authors."name"
+		authors. "name"
 	FROM
 		books
-		INNER JOIN authors ON books.author_id
-	WHERE 
-		books.author_id = authors.id
-		AND books.id = ?;
+		INNER JOIN authors ON books.author_id = authors.id
+	WHERE
+		books.id = $1;
 	`
 
 	stmt, err := connection.Prepare(query)
 
 	if err != nil {
+		log.Println(err)
 		return book, err
 	}
 
@@ -256,7 +244,7 @@ func (b Book) Find(id string) (Book, error) {
 
 	if rows.Next() {
 		err := rows.Scan(&bookID, &title, &authorId, &authorName)
-
+		log.Println(bookID)
 		if err != nil {
 			return book, err
 		}
@@ -274,12 +262,19 @@ func (b Book) Find(id string) (Book, error) {
 
 func Initialize() {
 	var err error
-	db, err := sql.Open("sqlite3", "./books.db")
+	config := "user=harrisonmalone password= host=127.0.0.1 port=5432 dbname=books connect_timeout=20 sslmode=disable"
+	db, err := sql.Open("postgres", config)
 
 	if err != nil {
 		fmt.Println(err)
 		panic("failed to connect database")
 	}
+
+	err = db.Ping()
+	if err != nil {
+		panic(err)
+	}
+
 	// ensure all migrations have been run
 	connection = db
 }

@@ -16,10 +16,12 @@ import (
 const defaultPort = "8080"
 
 func main() {
-	err := godotenv.Load()
+	if os.Getenv("AUTHORS_BOOKS_ENV") != "prod" {
+		err := godotenv.Load()
 
-	if err != nil {
-		panic("ENV variables cannot be loaded")
+		if err != nil {
+			panic("ENV variables cannot be loaded")
+		}
 	}
 
 	port := os.Getenv("PORT")

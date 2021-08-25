@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 
 	_ "github.com/lib/pq"
@@ -215,7 +216,6 @@ func (b *Book) Create() (Book, error) {
 func (b Book) Find(id string) (Book, error) {
 	var book Book
 
-	log.Println(id)
 	query := `
 	SELECT
 		books.id,
@@ -244,7 +244,6 @@ func (b Book) Find(id string) (Book, error) {
 
 	if rows.Next() {
 		err := rows.Scan(&bookID, &title, &authorId, &authorName)
-		log.Println(bookID)
 		if err != nil {
 			return book, err
 		}
@@ -262,8 +261,7 @@ func (b Book) Find(id string) (Book, error) {
 
 func Initialize() {
 	var err error
-	config := "user=harrisonmalone password= host=127.0.0.1 port=5432 dbname=books connect_timeout=20 sslmode=disable"
-	db, err := sql.Open("postgres", config)
+	db, err := sql.Open("postgres", os.Getenv("DB_CONFIG"))
 
 	if err != nil {
 		fmt.Println(err)

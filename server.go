@@ -10,11 +10,18 @@ import (
 	"github.com/harrisonmalone/authors-books-app/graph"
 	"github.com/harrisonmalone/authors-books-app/graph/database"
 	"github.com/harrisonmalone/authors-books-app/graph/generated"
+	"github.com/joho/godotenv"
 )
 
 const defaultPort = "8080"
 
 func main() {
+	err := godotenv.Load()
+
+	if err != nil {
+		panic("ENV variables cannot be loaded")
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort

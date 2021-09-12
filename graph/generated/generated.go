@@ -58,6 +58,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreateAuthor func(childComplexity int, input model.AuthorInput) int
 		CreateBook   func(childComplexity int, input model.BookInput) int
+		DeleteAuthor func(childComplexity int, id string) int
 	}
 
 	Query struct {
@@ -70,6 +71,7 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	CreateBook(ctx context.Context, input model.BookInput) (*model.Book, error)
 	CreateAuthor(ctx context.Context, input model.AuthorInput) (*model.Author, error)
+	DeleteAuthor(ctx context.Context, id string) (*model.Author, error)
 }
 type QueryResolver interface {
 	Book(ctx context.Context, id string) (*model.Book, error)
@@ -157,6 +159,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateBook(childComplexity, args["input"].(model.BookInput)), true
+
+	case "Mutation.deleteAuthor":
+		if e.complexity.Mutation.DeleteAuthor == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteAuthor_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteAuthor(childComplexity, args["id"].(string)), true
 
 	case "Query.author":
 		if e.complexity.Query.Author == nil {
@@ -274,6 +288,7 @@ type Query {
 type Mutation {
   createBook(input: BookInput!): Book
   createAuthor(input: AuthorInput!): Author
+  deleteAuthor(id: ID!): Author
 }
 
 input BookInput {
@@ -318,6 +333,21 @@ func (ec *executionContext) field_Mutation_createBook_args(ctx context.Context, 
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteAuthor_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -676,6 +706,45 @@ func (ec *executionContext) _Mutation_createAuthor(ctx context.Context, field gr
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().CreateAuthor(rctx, args["input"].(model.AuthorInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Author)
+	fc.Result = res
+	return ec.marshalOAuthor2ᚖgithubᚗcomᚋharrisonmaloneᚋauthorsᚑbooksᚑappᚋgraphᚋmodelᚐAuthor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteAuthor(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteAuthor_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteAuthor(rctx, args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2106,6 +2175,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_createBook(ctx, field)
 		case "createAuthor":
 			out.Values[i] = ec._Mutation_createAuthor(ctx, field)
+		case "deleteAuthor":
+			out.Values[i] = ec._Mutation_deleteAuthor(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

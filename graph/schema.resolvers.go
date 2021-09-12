@@ -52,6 +52,16 @@ func (r *mutationResolver) CreateAuthor(ctx context.Context, input model.AuthorI
 	}, nil
 }
 
+func (r *mutationResolver) DeleteAuthor(ctx context.Context, id string) (*model.Author, error) {
+	author := &database.Author{
+		ID: id,
+	}
+
+	author.Delete()
+
+	return nil, nil
+}
+
 func (r *queryResolver) Book(ctx context.Context, id string) (*model.Book, error) {
 	book, err := database.Book{}.Find(id)
 

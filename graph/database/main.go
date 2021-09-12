@@ -196,6 +196,12 @@ func (a Author) All() ([]Author, error) {
 	return authors, nil
 }
 
+func (a *Author) Delete() {
+	connection.Exec(`DELETE FROM books WHERE author_id = $1`, a.ID)
+
+	connection.Exec(`DELETE FROM authors WHERE id = $1`, a.ID)
+}
+
 func (b *Book) Create() (Book, error) {
 	var book Book
 

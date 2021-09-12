@@ -19,6 +19,7 @@ type Query {
 type Mutation {
   createBook(input: BookInput!): Book
   createAuthor(input: AuthorInput!): Author
+  deleteAuthor(id: ID!): Author
 }
 
 input BookInput {
